@@ -1,0 +1,333 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth ----------
+
+enum AdminRole {
+  OWNER
+  STAFF
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         AdminRole @default(STAFF)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions       AdminSession[]
+  resetTokens    PasswordResetToken[]
+  verifiedOrders Order[]              @relation("PaymentVerifier")
+}
+
+model AdminSession {
+  id          String    @id @default(cuid())
+  adminId     String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  userAgent   String?
+  ip          String?
+
+  admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  adminId   String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Media ----------
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  url       String
+  publicId  String?  @unique // Cloudinary public id (or storage key)
+  altText   String   @default("")
+  width     Int?
+  height    Int?
+  bytes     Int?
+  mimeType  String?
+  createdAt DateTime @default(now())
+
+  menuItems     MenuItem[]
+  announcements Announcement[]
+  settingsQr    SiteSettings[] @relation("PaymentQr")
+}
+
+// ---------- Menu ----------
+
+model MenuCategory {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  sortOrder  Int      @default(0)
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  items MenuItem[]
+}
+
+model MenuItem {
+  id            String   @id @default(cuid())
+  categoryId    String
+  name          String
+  slug          String   @unique
+  description   String   @default("")
+  priceCents    Int
+  imageId       String?
+  isAvailable   Boolean  @default(true)
+  isArchived    Boolean  @default(false)
+  isFeatured    Boolean  @default(false)
+  dietaryLabels String[] @default([])
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category   MenuCategory @relation(fields: [categoryId], references: [id])
+  image      MediaAsset?  @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  orderItems OrderItem[]
+
+  @@index([categoryId, sortOrder])
+}
+
+// ---------- Orders ----------
+
+enum FulfillmentType {
+  PICKUP
+  DINE_IN
+  DELIVERY
+}
+
+// Payment is collected out-of-band via the restaurant's own QR code.
+// UNPAID                -> order created, customer has not reported payment
+// AWAITING_VERIFICATION -> customer says they paid; staff must confirm in their bank/app
+// PAID                  -> staff verified the money arrived (only staff can set this)
+enum PaymentStatus {
+  UNPAID
+  AWAITING_VERIFICATION
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum FulfillmentStatus {
+  PENDING_ACCEPTANCE
+  ACCEPTED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id                 String            @id @default(cuid())
+  orderNumber        Int               @unique @default(autoincrement())
+  publicToken        String            @unique // unguessable; grants access to the customer status page
+  idempotencyKey     String?           @unique
+  customerName       String
+  customerEmail      String
+  customerPhone      String?
+  fulfillmentType    FulfillmentType
+  deliveryAddress    String?
+  notes              String?
+  subtotalCents      Int
+  taxCents           Int
+  feeCents           Int               @default(0)
+  totalCents         Int
+  paymentStatus      PaymentStatus     @default(UNPAID)
+  fulfillmentStatus  FulfillmentStatus @default(PENDING_ACCEPTANCE)
+  paymentReference   String? // customer-reported transaction reference
+  paymentReportedAt  DateTime?
+  paymentVerifiedAt  DateTime?
+  paymentVerifiedBy  String?
+  cancelReason       String?
+  acknowledgedAt     DateTime? // staff acknowledged the new-order alert
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  verifier AdminUser?   @relation("PaymentVerifier", fields: [paymentVerifiedBy], references: [id])
+  items    OrderItem[]
+  events   OrderEvent[]
+  emails   EmailLog[]
+  review   Review?
+
+  @@index([fulfillmentStatus, createdAt])
+  @@index([paymentStatus])
+  @@index([customerEmail])
+}
+
+// Immutable snapshot of the item at purchase time.
+model OrderItem {
+  id             String  @id @default(cuid())
+  orderId        String
+  menuItemId     String?
+  nameSnapshot   String
+  unitPriceCents Int
+  quantity       Int
+  lineTotalCents Int
+
+  order    Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+enum OrderEventType {
+  ORDER_CREATED
+  PAYMENT_REPORTED
+  PAYMENT_VERIFIED
+  PAYMENT_REJECTED
+  PAYMENT_REFUNDED
+  STATUS_CHANGED
+  ORDER_CANCELLED
+  ALERT_ACKNOWLEDGED
+}
+
+// Append-only log. `seq` is a monotonic cursor so reconnecting dashboards can
+// ask "give me everything after seq N" and dedupe alerts by event id.
+model OrderEvent {
+  id        String         @id @default(cuid())
+  seq       BigInt         @unique @default(autoincrement())
+  orderId   String
+  type      OrderEventType
+  actorId   String?
+  data      Json?
+  createdAt DateTime       @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+// ---------- Content ----------
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Announcement {
+  id          String        @id @default(cuid())
+  title       String
+  body        String        @default("")
+  imageId     String?
+  linkUrl     String?
+  status      PublishStatus @default(DRAFT)
+  publishAt   DateTime?
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  image MediaAsset? @relation(fields: [imageId], references: [id], onDelete: SetNull)
+}
+
+model Page {
+  key             String   @id // home, story, reviews, contact, affiliations
+  content         Json     @default("{}")
+  seoTitle        String?
+  seoDescription  String?
+  seoImageUrl     String?
+  canonicalUrl    String?
+  noIndex         Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}
+
+// Singleton row (id = "singleton").
+model SiteSettings {
+  id                 String   @id @default("singleton")
+  restaurantName     String   @default("Shree Foods")
+  phone              String?
+  email              String?
+  address            String?
+  openingHours       Json     @default("[]")
+  socialLinks        Json     @default("[]")
+  taxRateBps         Int      @default(0) // 825 = 8.25%
+  pickupEnabled      Boolean  @default(true)
+  dineInEnabled      Boolean  @default(false)
+  deliveryEnabled    Boolean  @default(false) // keep off until fees/address handling are configured
+  ordersOpen         Boolean  @default(true)
+  paymentQrId        String?
+  paymentInstructions String  @default("")
+  paymentHandle      String? // e.g. Zelle / Venmo handle shown beside the QR
+  updatedAt          DateTime @updatedAt
+
+  paymentQr MediaAsset? @relation("PaymentQr", fields: [paymentQrId], references: [id], onDelete: SetNull)
+}
+
+// ---------- Email ----------
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+model EmailLog {
+  id            String      @id @default(cuid())
+  orderId       String?
+  template      String
+  toEmail       String
+  subject       String?
+  provider      String? // "resend" or "log" (log = development only, nothing was sent)
+  status        EmailStatus @default(QUEUED)
+  attempts      Int         @default(0)
+  error         String?
+  /// Rendered message kept so failed sends can be retried. Null for sensitive mail (password reset links).
+  payload       Json?
+  nextAttemptAt DateTime?
+  dedupeKey     String?     @unique // e.g. "<eventId>:order_accepted": the same event can never email twice
+  createdAt     DateTime    @default(now())
+  sentAt        DateTime?
+
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt])
+  @@index([orderId])
+}
+
+// ---------- Reviews ----------
+
+enum ReviewStatus {
+  PENDING // submitted, not yet approved: not shown publicly
+  PUBLISHED
+  HIDDEN // rejected or taken down by the owner
+}
+
+/// One review per order (orderId is unique), written by the customer through their private order link.
+model Review {
+  id          String       @id @default(cuid())
+  orderId     String       @unique
+  rating      Int // 1..5, also enforced by a database CHECK constraint
+  comment     String?
+  displayName String // what the public sees, e.g. "Asha P." (never email or phone)
+  status      ReviewStatus @default(PENDING)
+  reply       String? // the restaurant's public response
+  repliedAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
