@@ -106,7 +106,7 @@ describe('Security review (e2e)', () => {
   describe('public data exposure', () => {
     it('/site exposes only public restaurant info (no tax, payment or internal settings)', async () => {
       const body = (await ctx.api().get('/api/v1/site').expect(200)).body;
-      expect(Object.keys(body).sort()).toEqual(['address', 'email', 'fulfillment', 'openingHours', 'ordersOpen', 'phone', 'restaurantName', 'socialLinks']);
+      expect(Object.keys(body).sort()).toEqual(['address', 'cartEnabled', 'email', 'fulfillment', 'openingHours', 'ordersOpen', 'phone', 'restaurantName', 'socialLinks']);
       expect(JSON.stringify(body)).not.toMatch(/taxRate|paymentQr|paymentHandle|deliveryEnabled/);
     });
 

@@ -130,6 +130,15 @@ describe('Orders (e2e, requires seeded db)', () => {
     await prisma.siteSettings.update({ where: { id: 'singleton' }, data: { ordersOpen: true } });
   });
 
+  it('rejects orders in menu-only mode (cart hidden)', async () => {
+    await prisma.siteSettings.update({ where: { id: 'singleton' }, data: { cartEnabled: false } });
+    try {
+      await post(body()).expect(409);
+    } finally {
+      await prisma.siteSettings.update({ where: { id: 'singleton' }, data: { cartEnabled: true } });
+    }
+  });
+
   it('public order view hides customer information and exposes payment instructions', async () => {
     const res = await post(body()).expect(201);
     const view = await get(res.body.token).expect(200);

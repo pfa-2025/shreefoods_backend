@@ -94,7 +94,7 @@ export class ContentAdminService {
     return {
       restaurantName: s.restaurantName, phone: s.phone, email: s.email, address: s.address,
       openingHours: s.openingHours, socialLinks: s.socialLinks, taxRateBps: s.taxRateBps,
-      pickupEnabled: s.pickupEnabled, dineInEnabled: s.dineInEnabled, deliveryEnabled: s.deliveryEnabled, ordersOpen: s.ordersOpen,
+      pickupEnabled: s.pickupEnabled, dineInEnabled: s.dineInEnabled, deliveryEnabled: s.deliveryEnabled, ordersOpen: s.ordersOpen, cartEnabled: s.cartEnabled,
       paymentQrId: s.paymentQrId, paymentQrUrl: s.paymentQr?.url ?? null, paymentQrAlt: s.paymentQr?.altText ?? '',
       paymentHandle: s.paymentHandle, paymentInstructions: s.paymentInstructions,
     };

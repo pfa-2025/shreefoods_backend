@@ -267,6 +267,7 @@ model SiteSettings {
   dineInEnabled      Boolean  @default(false)
   deliveryEnabled    Boolean  @default(false) // keep off until fees/address handling are configured
   ordersOpen         Boolean  @default(true)
+  cartEnabled        Boolean  @default(true) // false = menu-only site: no Add to cart / cart, and the server refuses orders
   paymentQrId        String?
   paymentInstructions String  @default("")
   paymentHandle      String? // e.g. Zelle / Venmo handle shown beside the QR

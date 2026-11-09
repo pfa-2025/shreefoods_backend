@@ -88,7 +88,8 @@ export class CartService {
     }
 
     const taxRateBps = settings?.taxRateBps ?? 0;
-    const ordersOpen = settings?.ordersOpen ?? true;
+    // Menu-only mode (cartEnabled off) also blocks orders, so a hidden cart can't be bypassed by calling the API.
+    const ordersOpen = (settings?.ordersOpen ?? true) && (settings?.cartEnabled ?? true);
     const totals = computeTotals(lines, taxRateBps);
     return {
       ...totals,

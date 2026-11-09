@@ -1,0 +1,1 @@
+ALTER TABLE "SiteSettings" ADD COLUMN "cartEnabled" BOOLEAN NOT NULL DEFAULT true;

@@ -7,3 +7,4 @@ coverage
 
 # Admin image uploads (local-disk dev fallback)
 uploads
+*.tsbuildinfo

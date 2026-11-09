@@ -17,6 +17,7 @@ export interface PublicSiteInfo {
   openingHours: OpeningHours[];
   socialLinks: SocialLink[];
   ordersOpen: boolean;
+  cartEnabled: boolean;
   fulfillment: { pickup: boolean; dineIn: boolean; delivery: boolean };
 }
 
@@ -36,6 +37,7 @@ export class SiteController {
       openingHours: (s?.openingHours as unknown as OpeningHours[] | undefined) ?? [],
       socialLinks: (s?.socialLinks as unknown as SocialLink[] | undefined) ?? [],
       ordersOpen: s?.ordersOpen ?? true,
+      cartEnabled: s?.cartEnabled ?? true,
       fulfillment: {
         pickup: s?.pickupEnabled ?? true,
         dineIn: s?.dineInEnabled ?? false,

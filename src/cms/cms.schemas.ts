@@ -119,6 +119,7 @@ export const settingsSchema = z
     pickupEnabled: z.boolean(),
     dineInEnabled: z.boolean(),
     ordersOpen: z.boolean(),
+    cartEnabled: z.boolean(),
     paymentQrId: z.preprocess(emptyToNull, z.string().max(64).nullable()),
     paymentHandle: optionalText(100),
     paymentInstructions: z.string().trim().max(500),
