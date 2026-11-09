@@ -1,6 +1,6 @@
 /**
  * Test-data helper for the Playwright suite.
- *   npm run e2e:data -- prepare   create the throwaway admin accounts
+ *   npm run e2e:data -- prepare   create the throwaway admin accounts and make sure ordering is switched on
  *   npm run e2e:data -- cleanup   delete them and any orders made by browser tests
  */
 import { randomBytes } from 'node:crypto';
@@ -26,7 +26,9 @@ async function main(): Promise<void> {
         create: { email: a.email, name: a.name, role: a.role, passwordHash },
       });
     }
-    console.log('e2e accounts ready');
+    // The cart tests need the Add buttons, so menu-only mode must be off while they run.
+    await prisma.siteSettings.updateMany({ where: { id: 'singleton' }, data: { cartEnabled: true } });
+    console.log('e2e accounts ready (cart and ordering switched on)');
   } else if (mode === 'seed-old-order') {
     // An order placed 45 days ago, so tests can prove the dashboard's "All time" view and the Excel export reach back that far.
     const item = await prisma.menuItem.findUniqueOrThrow({ where: { slug: 'vada-pav' } });
