@@ -27,7 +27,7 @@ Without the `R2_*` settings, images go to `./uploads` (development only).
 | `npm run db:deploy` | apply migrations |
 | `npm run e2e:data -- prepare\|cleanup` | create / remove the throwaway accounts and content the browser tests use |
 | `scripts/db-backup.sh`, `scripts/db-restore-drill.sh` | backup and restore check (see `docs/operations.md`) |
-| `scripts/migrate-from-postgres.ts`, `scripts/migrate-uploads-to-r2.ts` | one-off migration helpers used when moving from Postgres and local disk |
+| `scripts/migrate-from-postgres.ts`, `scripts/migrate-uploads-to-r2.ts`, `scripts/migrate-bundled-images-to-r2.ts` | one-off migration helpers used when moving from Postgres, local disk and the bundled sample photos |
 
 ## Docs
 

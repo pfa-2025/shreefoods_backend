@@ -19,6 +19,8 @@ The API keeps live order updates in memory, so run **one** API instance.
 3. Put the connection string in the API's `DATABASE_URL`, URL-encoding special characters (`@` → `%40`, `!` → `%21`), and keep the pool small on shared hosting:
    `mysql://USER:PASSWORD@HOST:3306/DBNAME?connection_limit=5`
 4. Create the tables: `npx prisma migrate deploy`. If the database already contains tables that aren't ours, Prisma refuses (`P3005`). Run the SQL in `prisma/migrations/*/migration.sql` yourself, then mark each as applied with `npx prisma migrate resolve --applied <migration folder name>`.
+   If you seed a fresh database, the sample dish photos point at copies bundled with the website. To move them to R2 run
+   `FRONTEND_PUBLIC_DIR=../frontend/public npx tsx scripts/migrate-bundled-images-to-r2.ts`. The home-page and story pictures are served from R2 when the website is built with `R2_PUBLIC_URL` (see `frontend/src/lib/site-images.ts`).
 5. First install only: `npm run db:seed` (sample menu and settings), then `npm run admin:create -- you@example.com "Your Name" OWNER`.
 
 ## 2. API environment
