@@ -250,7 +250,7 @@ describe('Live orders: staff actions, snapshot and stream (e2e, requires seeded 
       for (const s of ['ACCEPTED', 'PREPARING', 'READY', 'COMPLETED']) await setStatus(o.id, s).expect(200);
       const ids = async () => ((await api().get('/api/v1/admin/live/snapshot').set('Cookie', cookie)).body.orders as { id: string }[]).map((x) => x.id);
       expect(await ids()).toContain(o.id);
-      await prisma.$executeRaw`UPDATE "Order" SET "updatedAt" = now() - interval '2 days' WHERE id = ${o.id}`;
+      await prisma.$executeRaw`UPDATE \`Order\` SET updatedAt = NOW(3) - INTERVAL 2 DAY WHERE id = ${o.id}`;
       expect(await ids()).not.toContain(o.id);
     });
   });

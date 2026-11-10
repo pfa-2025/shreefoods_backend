@@ -18,13 +18,15 @@
     "postinstall": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "admin:create": "tsx scripts/create-admin.ts",
-    "e2e:data": "tsx scripts/e2e-data.ts"
+    "e2e:data": "tsx scripts/e2e-data.ts",
+    "start:prod": "prisma migrate deploy && node dist/main.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1165.0",
     "@nestjs/common": "^11.1.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.1.0",
@@ -68,5 +70,8 @@
   },
   "overrides": {
     "multer": "^2.5.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

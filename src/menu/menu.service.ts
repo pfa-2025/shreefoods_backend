@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { asLabels } from './dietary-labels';
 
 export interface PublicMenuItem {
   id: string;
@@ -47,7 +48,7 @@ export class MenuService {
         imageAlt: i.image?.altText ?? i.name,
         isAvailable: i.isAvailable,
         isFeatured: i.isFeatured,
-        dietaryLabels: i.dietaryLabels,
+        dietaryLabels: asLabels(i.dietaryLabels),
       })),
     }));
   }

@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 export interface StoredFile {
   /** Public URL the browser loads. */
@@ -10,7 +11,7 @@ export interface StoredFile {
 }
 
 export abstract class StorageProvider {
-  abstract readonly name: 'local' | 'cloudinary';
+  abstract readonly name: 'local' | 'cloudinary' | 'r2';
   abstract save(data: Buffer, ext: 'jpg' | 'png' | 'webp', mime: string): Promise<StoredFile>;
   abstract remove(key: string): Promise<void>;
 }
@@ -86,5 +87,52 @@ export class CloudinaryStorage extends StorageProvider {
     });
     const res = await fetch(`https://api.cloudinary.com/v1_1/${this.cloud}/image/destroy`, { method: 'POST', body: form });
     if (!res.ok) throw new Error(`Cloudinary delete failed (${res.status})`);
+  }
+}
+
+export interface R2Config {
+  endpoint: string; // https://<account id>.r2.cloudflarestorage.com
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucket: string;
+  /** Where browsers load files from: the bucket's r2.dev address or a custom domain, without a trailing slash. */
+  publicUrl: string;
+}
+
+/** Cloudflare R2 (S3-compatible). Files get random names, are served with a long cache life and are never overwritten. */
+export class R2Storage extends StorageProvider {
+  readonly name = 'r2' as const;
+  static readonly KEY_PATTERN = /^shreefoods\/[a-f0-9]{32}\.(jpg|png|webp)$/;
+  private readonly base: string;
+
+  constructor(
+    private readonly cfg: R2Config,
+    private readonly client: Pick<S3Client, 'send'> = new S3Client({
+      region: 'auto',
+      endpoint: cfg.endpoint,
+      credentials: { accessKeyId: cfg.accessKeyId, secretAccessKey: cfg.secretAccessKey },
+    }),
+  ) {
+    super();
+    this.base = cfg.publicUrl.replace(/\/+$/, '');
+  }
+
+  async save(data: Buffer, ext: 'jpg' | 'png' | 'webp', mime: string): Promise<StoredFile> {
+    const key = `shreefoods/${randomBytes(16).toString('hex')}.${ext}`; // never derived from the client's filename
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.cfg.bucket,
+        Key: key,
+        Body: data,
+        ContentType: mime,
+        CacheControl: 'public, max-age=31536000, immutable', // the name changes whenever the picture does
+      }),
+    );
+    return { key, url: `${this.base}/${key}` };
+  }
+
+  async remove(key: string): Promise<void> {
+    if (!R2Storage.KEY_PATTERN.test(key)) return; // refuse anything that isn't one of our own keys
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.cfg.bucket, Key: key }));
   }
 }

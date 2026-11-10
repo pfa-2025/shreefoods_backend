@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -59,9 +59,9 @@ model PasswordResetToken {
 
 model MediaAsset {
   id        String   @id @default(cuid())
-  url       String
+  url       String   @db.VarChar(1000)
   publicId  String?  @unique // Cloudinary public id (or storage key)
-  altText   String   @default("")
+  altText   String   @default("") @db.VarChar(500)
   width     Int?
   height    Int?
   bytes     Int?
@@ -92,13 +92,13 @@ model MenuItem {
   categoryId    String
   name          String
   slug          String   @unique
-  description   String   @default("")
+  description   String   @default("") @db.VarChar(1000)
   priceCents    Int
   imageId       String?
   isAvailable   Boolean  @default(true)
   isArchived    Boolean  @default(false)
   isFeatured    Boolean  @default(false)
-  dietaryLabels String[] @default([])
+  dietaryLabels Json // string[]; MySQL has no array columns, and the app always supplies a value
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -148,8 +148,8 @@ model Order {
   customerEmail      String
   customerPhone      String?
   fulfillmentType    FulfillmentType
-  deliveryAddress    String?
-  notes              String?
+  deliveryAddress    String?           @db.Text
+  notes              String?           @db.Text
   subtotalCents      Int
   taxCents           Int
   feeCents           Int               @default(0)
@@ -160,7 +160,7 @@ model Order {
   paymentReportedAt  DateTime?
   paymentVerifiedAt  DateTime?
   paymentVerifiedBy  String?
-  cancelReason       String?
+  cancelReason       String?           @db.VarChar(500)
   acknowledgedAt     DateTime? // staff acknowledged the new-order alert
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -230,9 +230,9 @@ enum PublishStatus {
 model Announcement {
   id          String        @id @default(cuid())
   title       String
-  body        String        @default("")
+  body        String        @default("") @db.VarChar(1000)
   imageId     String?
-  linkUrl     String?
+  linkUrl     String?       @db.VarChar(1000)
   status      PublishStatus @default(DRAFT)
   publishAt   DateTime?
   sortOrder   Int           @default(0)
@@ -244,11 +244,11 @@ model Announcement {
 
 model Page {
   key             String   @id // home, story, reviews, contact, affiliations
-  content         Json     @default("{}")
-  seoTitle        String?
-  seoDescription  String?
-  seoImageUrl     String?
-  canonicalUrl    String?
+  content         Json
+  seoTitle        String?  @db.VarChar(300)
+  seoDescription  String?  @db.VarChar(1000)
+  seoImageUrl     String?  @db.VarChar(1000)
+  canonicalUrl    String?  @db.VarChar(1000)
   noIndex         Boolean  @default(false)
   updatedAt       DateTime @updatedAt
 }
@@ -260,8 +260,8 @@ model SiteSettings {
   phone              String?
   email              String?
   address            String?
-  openingHours       Json     @default("[]")
-  socialLinks        Json     @default("[]")
+  openingHours       Json
+  socialLinks        Json
   taxRateBps         Int      @default(0) // 825 = 8.25%
   pickupEnabled      Boolean  @default(true)
   dineInEnabled      Boolean  @default(false)
@@ -269,7 +269,7 @@ model SiteSettings {
   ordersOpen         Boolean  @default(true)
   cartEnabled        Boolean  @default(true) // false = menu-only site: no Add to cart / cart, and the server refuses orders
   paymentQrId        String?
-  paymentInstructions String  @default("")
+  paymentInstructions String  @default("") @db.VarChar(1000)
   paymentHandle      String? // e.g. Zelle / Venmo handle shown beside the QR
   updatedAt          DateTime @updatedAt
 
@@ -293,7 +293,7 @@ model EmailLog {
   provider      String? // "resend" or "log" (log = development only, nothing was sent)
   status        EmailStatus @default(QUEUED)
   attempts      Int         @default(0)
-  error         String?
+  error         String?     @db.Text
   /// Rendered message kept so failed sends can be retried. Null for sensitive mail (password reset links).
   payload       Json?
   nextAttemptAt DateTime?
@@ -320,10 +320,10 @@ model Review {
   id          String       @id @default(cuid())
   orderId     String       @unique
   rating      Int // 1..5, also enforced by a database CHECK constraint
-  comment     String?
+  comment     String?      @db.Text
   displayName String // what the public sees, e.g. "Asha P." (never email or phone)
   status      ReviewStatus @default(PENDING)
-  reply       String? // the restaurant's public response
+  reply       String?      @db.Text // the restaurant's public response
   repliedAt   DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt

@@ -120,7 +120,16 @@ describe('Customer reviews (e2e, requires seeded db)', () => {
     it('removes a review with its order', async () => {
       const o = await orderAt('COMPLETED');
       await review(o.token, { rating: 5 }).expect(201);
-      await ctx.prisma.order.delete({ where: { id: o.id } });
+      // MariaDB 11.x reports "record has changed since last read" (1020) if the background email worker
+      // touches this order's email rows at the same instant as the cascade; the app never deletes orders, so just retry.
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await ctx.prisma.order.delete({ where: { id: o.id } });
+          break;
+        } catch (e) {
+          if (attempt >= 3 || !String(e).includes('1020')) throw e;
+        }
+      }
       expect(await ctx.prisma.review.count({ where: { orderId: o.id } })).toBe(0);
     });
   });

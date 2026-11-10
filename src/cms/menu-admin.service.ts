@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RevalidateService } from '../revalidate/revalidate.service';
 import { CategoryInput, CategoryPatch, ItemInput, ItemOrderInput, ItemPatch, IdListInput } from './cms.schemas';
+import { asLabels } from '../menu/dietary-labels';
 import { uniqueSlug } from './slug';
 
 type ItemRow = Prisma.MenuItemGetPayload<{ include: { image: true } }>;
@@ -20,7 +21,7 @@ const itemView = (i: ItemRow) => ({
   isAvailable: i.isAvailable,
   isArchived: i.isArchived,
   isFeatured: i.isFeatured,
-  dietaryLabels: i.dietaryLabels,
+  dietaryLabels: asLabels(i.dietaryLabels),
   sortOrder: i.sortOrder,
 });
 
@@ -101,7 +102,7 @@ export class MenuAdminService {
     const i = await this.prisma.menuItem.create({
       data: {
         categoryId: src.categoryId, name, slug, description: src.description, priceCents: src.priceCents, imageId: src.imageId,
-        dietaryLabels: src.dietaryLabels, isFeatured: false,
+        dietaryLabels: asLabels(src.dietaryLabels), isFeatured: false,
         isAvailable: false, // a copy stays hidden from ordering until someone reviews it
         sortOrder: await this.nextItemOrder(src.categoryId),
       },

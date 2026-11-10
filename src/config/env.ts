@@ -12,6 +12,12 @@ const schema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
+  // Media storage: Cloudflare R2 when all five are set (takes priority over Cloudinary).
+  R2_ENDPOINT: z.string().url().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET: z.string().optional(),
+  R2_PUBLIC_URL: z.string().url().optional(),
   UPLOAD_DIR: z.string().default('./uploads'),
   // Shared secret for telling the web app to refresh its cached content after a CMS save.
   REVALIDATE_SECRET: z.string().min(16).optional(),
@@ -39,8 +45,18 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   if (cloudinary !== 0 && cloudinary !== 3) {
     throw new Error('Set all of CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET, or none');
   }
-  if (d.NODE_ENV === 'production' && cloudinary === 0) {
-    throw new Error('Production needs Cloudinary: local disk uploads are lost whenever the host restarts');
+  const r2 = [d.R2_ENDPOINT, d.R2_ACCESS_KEY_ID, d.R2_SECRET_ACCESS_KEY, d.R2_BUCKET, d.R2_PUBLIC_URL].filter(Boolean).length;
+  if (r2 !== 0 && r2 !== 5) {
+    throw new Error('Set all of R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET and R2_PUBLIC_URL, or none');
+  }
+  if (d.NODE_ENV === 'production' && cloudinary === 0 && r2 === 0) {
+    throw new Error('Production needs Cloudflare R2 or Cloudinary: local disk uploads are lost whenever the host restarts');
+  }
+  if (d.NODE_ENV === 'production' && !d.FRONTEND_URL.startsWith('https://')) {
+    throw new Error('FRONTEND_URL must be an https:// address in production (cookies and CORS depend on it)');
+  }
+  if (d.NODE_ENV === 'production' && !d.REVALIDATE_SECRET) {
+    throw new Error('Production needs REVALIDATE_SECRET so website edits show up immediately');
   }
   if (d.NODE_ENV === 'production' && (!d.RESEND_API_KEY || !d.EMAIL_FROM)) {
     throw new Error('Production needs RESEND_API_KEY and EMAIL_FROM so customers receive order emails');

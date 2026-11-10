@@ -18,7 +18,7 @@ const ordersFilterShape = {
   ...rangeShape,
   status: z.enum(['PENDING_ACCEPTANCE', 'ACCEPTED', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED']).optional(),
   payment: z.enum(['UNPAID', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'REFUNDED']).optional(),
-  q: z.string().max(200).transform((v) => v.replaceAll('\u0000', '').trim().slice(0, 100)).optional(), // Postgres rejects NUL bytes
+  q: z.string().max(200).transform((v) => v.replaceAll('\u0000', '').trim().slice(0, 100)).optional(), // NUL bytes are never valid in a search
 };
 export const ordersQuerySchema = z
   .object({ ...ordersFilterShape, page: z.coerce.number().int().min(1).max(10_000).default(1) })
@@ -117,8 +117,9 @@ export class AdminService {
       ...(term && {
         OR: [
           ...(/^\d{1,9}$/.test(orderRef) ? [{ orderNumber: Number(orderRef) }] : []),
-          { customerName: { contains: term, mode: 'insensitive' as const } },
-          { customerEmail: { contains: term, mode: 'insensitive' as const } },
+          // MySQL's default collation is case-insensitive, so a plain "contains" already ignores case.
+          { customerName: { contains: term } },
+          { customerEmail: { contains: term } },
           ...(digits ? [{ customerPhone: { contains: digits } }] : []),
         ],
       }),

@@ -78,7 +78,7 @@ describe('Media library (e2e)', () => {
     const img = (await upload('owner', PNG).expect(201)).body;
     created.push(img.id);
     const cat = await ctx.prisma.menuCategory.findFirstOrThrow({ where: { isArchived: false } });
-    const item = await ctx.prisma.menuItem.create({ data: { categoryId: cat.id, name: 'E2E media item', slug: `e2e-media-${Date.now()}`, priceCents: 100, imageId: img.id } });
+    const item = await ctx.prisma.menuItem.create({ data: { categoryId: cat.id, name: 'E2E media item', slug: `e2e-media-${Date.now()}`, priceCents: 100, dietaryLabels: [], imageId: img.id } });
 
     const blocked = await ctx.owner.delete(`/admin/media/${img.id}`).expect(409);
     expect(blocked.body.message).toContain('1 menu item');

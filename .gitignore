@@ -8,3 +8,7 @@ coverage
 # Admin image uploads (local-disk dev fallback)
 uploads
 *.tsbuildinfo
+
+# database backups contain customer data
+backups/
+_db-backup/

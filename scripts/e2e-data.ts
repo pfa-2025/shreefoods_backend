@@ -6,8 +6,10 @@
 import { randomBytes } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../src/auth/password';
+import { R2Storage } from '../src/media/storage';
 
 const prisma = new PrismaClient();
 const ACCOUNTS = [
@@ -49,12 +51,15 @@ async function main(): Promise<void> {
     await prisma.announcement.deleteMany({ where: { title: { startsWith: 'E2E ' } } });
     await prisma.menuItem.deleteMany({ where: { name: { startsWith: 'E2E ' } } });
     await prisma.menuCategory.deleteMany({ where: { name: { startsWith: 'E2E ' } } });
-    // Images uploaded by CMS browser tests (alt text starts with "E2E "), including their files on local disk
+    // Images uploaded by CMS browser tests (alt text starts with "E2E "), including their files (local disk or Cloudflare R2)
     const media = await prisma.mediaAsset.findMany({ where: { altText: { startsWith: 'E2E ' } } });
+    const r2 = process.env.R2_ENDPOINT && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET && process.env.R2_PUBLIC_URL
+      ? new R2Storage({ endpoint: process.env.R2_ENDPOINT, accessKeyId: process.env.R2_ACCESS_KEY_ID, secretAccessKey: process.env.R2_SECRET_ACCESS_KEY, bucket: process.env.R2_BUCKET, publicUrl: process.env.R2_PUBLIC_URL })
+      : null;
     for (const m of media) {
-      if (m.publicId && /^[a-f0-9]{32}\.(jpg|png|webp)$/.test(m.publicId)) {
-        await rm(path.resolve(process.env.UPLOAD_DIR ?? './uploads', m.publicId), { force: true });
-      }
+      if (!m.publicId) continue;
+      if (/^[a-f0-9]{32}\.(jpg|png|webp)$/.test(m.publicId)) await rm(path.resolve(process.env.UPLOAD_DIR ?? './uploads', m.publicId), { force: true });
+      else if (r2) await r2.remove(m.publicId); // ignores anything that isn't one of its own keys
     }
     await prisma.mediaAsset.deleteMany({ where: { id: { in: media.map((m) => m.id) } } });
     console.log(`removed ${orders.count} test orders, ${admins.count} test admins, ${media.length} test images`);

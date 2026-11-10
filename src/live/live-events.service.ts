@@ -16,7 +16,7 @@ export interface LiveMessage {
  * The OrderEvent table is the source of truth: publish() is only called AFTER the write has
  * committed, and clients reconcile from a database snapshot on every (re)connect, so a lost
  * message can never lose an order. A multi-instance deployment would swap the Subject for
- * Postgres LISTEN/NOTIFY or Redis pub/sub.
+ * a shared message bus such as Redis pub/sub.
  */
 @Injectable()
 export class LiveEventsService {
