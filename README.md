@@ -22,7 +22,7 @@ Without the `R2_*` settings, images go to `./uploads` (development only).
 | Command | What it does |
 | --- | --- |
 | `npm run dev` / `npm run build` / `npm run start:prod` | develop, compile, run (applies migrations first) |
-| `npm test` | unit + API tests (they use a real database; point `DATABASE_URL` at a **scratch** one) |
+| `npm test` | unit + API tests. They write test data, so they **refuse to run unless `DATABASE_URL` points at this machine** (override with `ALLOW_REMOTE_TEST_DB=yes` only if you mean it) |
 | `npm run typecheck` / `npm run lint` | static checks |
 | `npm run db:deploy` | apply migrations |
 | `npm run e2e:data -- prepare\|cleanup` | create / remove the throwaway accounts and content the browser tests use |

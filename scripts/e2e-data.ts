@@ -10,6 +10,7 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../src/auth/password';
 import { R2Storage } from '../src/media/storage';
+import { assertLocalDatabase } from './local-only';
 
 const prisma = new PrismaClient();
 const ACCOUNTS = [
@@ -18,6 +19,7 @@ const ACCOUNTS = [
 ];
 
 async function main(): Promise<void> {
+  assertLocalDatabase(process.env.DATABASE_URL, 'The browser-test helper');
   const mode = process.argv[2];
   if (mode === 'prepare') {
     for (const a of ACCOUNTS) {
