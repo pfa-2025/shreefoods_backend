@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { allowedOrigins } from './config/frontend-urls';
 
 /** Shared by main.ts and e2e tests so tests exercise the real middleware. */
 export function setupApp(app: INestApplication): void {
@@ -20,7 +21,7 @@ export function setupApp(app: INestApplication): void {
   app.use(helmet());
   app.use(cookieParser());
   app.setGlobalPrefix('api/v1');
-  app.enableCors({ origin: [config.getOrThrow<string>('FRONTEND_URL')], credentials: true });
+  app.enableCors({ origin: allowedOrigins(config.getOrThrow<string>('FRONTEND_URL')), credentials: true });
   app.useGlobalFilters(new AllExceptionsFilter());
   app.enableShutdownHooks();
 }

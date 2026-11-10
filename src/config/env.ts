@@ -1,9 +1,14 @@
 import { z } from 'zod';
+import { frontendUrls } from './frontend-urls';
 
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
-  FRONTEND_URL: z.string().url(),
+  // One website address, or several separated by commas (the first is the main one); see frontend-urls.ts
+  FRONTEND_URL: z.string().refine((v) => {
+    const urls = frontendUrls(v);
+    return urls.length > 0 && urls.every((u) => z.string().url().safeParse(u).success);
+  }, 'must be one or more valid URLs, separated by commas'),
   DATABASE_URL: z.string().min(1),
   SESSION_SECRET: z.string().min(16),
   // Reverse-proxy hops in front of the API (Vercel rewrite + host load balancer); controls req.ip for rate limits.
@@ -52,8 +57,8 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   if (d.NODE_ENV === 'production' && cloudinary === 0 && r2 === 0) {
     throw new Error('Production needs Cloudflare R2 or Cloudinary: local disk uploads are lost whenever the host restarts');
   }
-  if (d.NODE_ENV === 'production' && !d.FRONTEND_URL.startsWith('https://')) {
-    throw new Error('FRONTEND_URL must be an https:// address in production (cookies and CORS depend on it)');
+  if (d.NODE_ENV === 'production' && !frontendUrls(d.FRONTEND_URL).every((u) => u.startsWith('https://'))) {
+    throw new Error('Every FRONTEND_URL address must be https:// in production (cookies and CORS depend on it)');
   }
   if (d.NODE_ENV === 'production' && !d.REVALIDATE_SECRET) {
     throw new Error('Production needs REVALIDATE_SECRET so website edits show up immediately');

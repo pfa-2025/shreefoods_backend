@@ -4,6 +4,7 @@ import { Subscription } from 'rxjs';
 import { LiveEventsService, LiveMessage } from '../live/live-events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from './email.service';
+import { primaryFrontendUrl } from '../config/frontend-urls';
 import { OrderCtx, TemplateName, renderOrderEmail } from './email.templates';
 
 /** Which customer-facing email, if any, a committed order event should produce. */
@@ -66,7 +67,7 @@ export class EmailTriggers implements OnModuleInit, OnModuleDestroy {
       subtotalCents: order.subtotalCents,
       taxCents: order.taxCents,
       totalCents: order.totalCents,
-      statusUrl: `${this.config.getOrThrow<string>('FRONTEND_URL')}/order/${order.publicToken}`,
+      statusUrl: `${primaryFrontendUrl(this.config.getOrThrow<string>('FRONTEND_URL'))}/order/${order.publicToken}`,
       fulfillmentType: order.fulfillmentType,
       cancelReason: order.cancelReason,
       refunded: order.paymentStatus === 'REFUNDED',

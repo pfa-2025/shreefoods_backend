@@ -23,7 +23,7 @@ describe('GET /menu (e2e, requires seeded db)', () => {
     for (const c of res.body.categories) {
       for (const i of c.items) {
         expect(Number.isInteger(i.priceCents)).toBe(true);
-        expect(i.imageUrl).toMatch(/^\/images\/menu\/.+\.jpg$/);
+        expect(i.imageUrl).toMatch(/^(\/images\/menu\/.+\.jpg|https:\/\/.+\/shreefoods\/[a-f0-9]{32}\.jpg)$/); // bundled sample photo, or the same photo in Cloudflare R2
       }
     }
   });

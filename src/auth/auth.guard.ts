@@ -4,6 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { AdminRole } from '@prisma/client';
 import type { Request } from 'express';
 import { AuthService } from './auth.service';
+import { allowedOrigins } from '../config/frontend-urls';
 import { AdminRequest, CSRF_HEADER, CSRF_VALUE, SESSION_COOKIE } from './auth.types';
 
 export const ROLES_KEY = 'roles';
@@ -17,7 +18,7 @@ export const Roles = (...roles: AdminRole[]) => SetMetadata(ROLES_KEY, roles);
 export function assertCsrfSafe(req: Request, frontendUrl: string): void {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return;
   const origin = req.headers.origin;
-  if (origin && origin !== new URL(frontendUrl).origin) throw new ForbiddenException('Cross-origin request blocked');
+  if (origin && !allowedOrigins(frontendUrl).includes(origin)) throw new ForbiddenException('Cross-origin request blocked');
   if (req.headers[CSRF_HEADER] !== CSRF_VALUE) throw new ForbiddenException('Missing request header');
 }
 

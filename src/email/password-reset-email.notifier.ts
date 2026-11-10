@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PasswordResetNotifier } from '../auth/password-reset.notifier';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from './email.service';
+import { primaryFrontendUrl } from '../config/frontend-urls';
 import { renderPasswordReset } from './email.templates';
 
 /** Emails the reset link. In development without a provider, also prints the link so you can use it. */
@@ -19,7 +20,7 @@ export class EmailPasswordResetNotifier extends PasswordResetNotifier {
   }
 
   async send(to: string, token: string): Promise<void> {
-    const url = `${this.config.getOrThrow<string>('FRONTEND_URL')}/admin/reset-password?token=${token}`;
+    const url = `${primaryFrontendUrl(this.config.getOrThrow<string>('FRONTEND_URL'))}/admin/reset-password?token=${token}`;
     const settings = await this.prisma.siteSettings.findUnique({ where: { id: 'singleton' } });
     if (this.email.providerName === 'log' && this.config.get('NODE_ENV') !== 'production') {
       this.logger.log(`DEV ONLY reset link for ${to}: ${url}`);

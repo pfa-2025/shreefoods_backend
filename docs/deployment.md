@@ -29,7 +29,7 @@ The API keeps live order updates in memory, so run **one** API instance.
 | --- | --- | --- |
 | `NODE_ENV` | yes | `production` turns on the strict checks below |
 | `PORT` | no | default 4000 |
-| `FRONTEND_URL` | yes | the website's public `https://` address (CORS, email links) |
+| `FRONTEND_URL` | yes | the website's public `https://` address (CORS, sign-in check, email links). Several addresses can be listed, separated by commas (e.g. `https://shreefoods.us,https://shreefoods-web.vercel.app`): the first is the main one, every one may sign in. |
 | `DATABASE_URL` | yes | see above |
 | `SESSION_SECRET` | yes | `openssl rand -hex 32`; must not start with `dev-only` |
 | `REVALIDATE_SECRET` | yes | same value as the website's; lets edits show instantly |

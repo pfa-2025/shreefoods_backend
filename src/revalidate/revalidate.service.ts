@@ -1,5 +1,6 @@
 import { Global, Injectable, Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { primaryFrontendUrl } from '../config/frontend-urls';
 
 /**
  * After a CMS save, ask the web app to drop its cached public content so edits appear at once,
@@ -15,7 +16,7 @@ export class RevalidateService {
     const secret = this.config.get<string>('REVALIDATE_SECRET');
     if (!secret) return;
     try {
-      const res = await fetch(`${this.config.getOrThrow<string>('FRONTEND_URL')}/api/revalidate`, {
+      const res = await fetch(`${primaryFrontendUrl(this.config.getOrThrow<string>('FRONTEND_URL'))}/api/revalidate`, {
         method: 'POST',
         headers: { 'x-revalidate-secret': secret },
         signal: AbortSignal.timeout(4000),

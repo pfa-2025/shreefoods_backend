@@ -146,7 +146,7 @@ describe('Orders (e2e, requires seeded db)', () => {
     expect(json).not.toContain(TEST_EMAIL);
     expect(json).not.toContain('Test Customer');
     expect(json).not.toContain('5550123');
-    expect(view.body.payment.qrUrl).toBe('/images/payment-qr.png');
+    expect(view.body.payment.qrUrl).toMatch(/^(\/images\/payment-qr\.png|https:\/\/.+\/shreefoods\/[a-f0-9]{32}\.png)$/); // bundled QR, or the same file in Cloudflare R2
     expect(view.body.paymentStatus).toBe('UNPAID');
   });
 
