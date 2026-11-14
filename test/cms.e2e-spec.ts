@@ -224,6 +224,21 @@ describe('CMS: menu, announcements, pages/SEO, settings (e2e, requires seeded db
       await bad({ noIndex: false }).expect(200);
     });
 
+    it('lets the Our Story picture be chosen, validates its address, and falls back when removed', async () => {
+      const seo = { title: null, description: null, imageUrl: null, canonicalUrl: null, noIndex: false };
+      const story = (extra: object) => ctx.owner.put('/admin/pages/story').send({ content: { headline: 'Our roots', paragraphs: ['One.'], ...extra }, seo });
+      try {
+        await story({ imageUrl: 'javascript:alert(1)' }).expect(400);
+        await story({ imageUrl: '//evil.example/x.png' }).expect(400);
+        await story({ imageUrl: 'https://pub-x.r2.dev/shreefoods/a.jpg', imageAlt: 'Our kitchen' }).expect(200);
+        expect((await ctx.api().get('/api/v1/pages/story').expect(200)).body.content).toMatchObject({ imageUrl: 'https://pub-x.r2.dev/shreefoods/a.jpg', imageAlt: 'Our kitchen' });
+        await story({}).expect(200); // saved without a picture: back to the one that ships with the website
+        expect((await ctx.api().get('/api/v1/pages/story').expect(200)).body.content).toMatchObject({ imageUrl: null, imageAlt: '' });
+      } finally {
+        await ctx.prisma.page.deleteMany({ where: { key: 'story' } });
+      }
+    });
+
     it('validates page content per page, reporting field paths', async () => {
       const r = await ctx.owner.put('/admin/pages/story').send({ content: { headline: '', paragraphs: [] }, seo: { title: null, description: null, imageUrl: null, canonicalUrl: null, noIndex: false } }).expect(400);
       expect(r.body.details.map((d: { path: string }) => d.path)).toEqual(expect.arrayContaining(['content.headline', 'content.paragraphs']));

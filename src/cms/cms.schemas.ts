@@ -88,10 +88,17 @@ export type PageKey = (typeof PAGE_KEYS)[number];
 export const pageKey = z.enum(PAGE_KEYS);
 
 const para = z.string().trim().min(1).max(1200);
+/** A picture on this site (/…) or a full https:// address, e.g. one uploaded to the image library. */
+const imageAddress = z.string().trim().max(500).refine((v) => /^\/(?!\/)[^\s]*$/.test(v) || safeUrl.safeParse(v).success, 'Pick an uploaded image or enter a full https:// address');
 export const pageContent: Record<PageKey, z.ZodType<Record<string, unknown>>> = {
   home: z.object({ heroEyebrow: z.string().trim().max(60), heroTitle: z.string().trim().min(1).max(120), heroText: z.string().trim().max(300) }),
   menu: z.object({ intro: z.string().trim().max(300) }),
-  story: z.object({ headline: z.string().trim().min(1).max(120), paragraphs: z.array(para).min(1).max(6) }),
+  story: z.object({
+    headline: z.string().trim().min(1).max(120),
+    paragraphs: z.array(para).min(1).max(6),
+    imageUrl: z.preprocess(emptyToNull, imageAddress.nullable()).default(null), // null = the picture that ships with the website
+    imageAlt: z.string().trim().max(200).default(''),
+  }),
   reviews: z.object({ intro: z.string().trim().max(300), links: z.array(z.object({ platform: z.string().trim().min(1).max(40), url: safeUrl })).max(10) }),
   contact: z.object({ intro: z.string().trim().max(300) }),
   affiliations: z.object({ intro: z.string().trim().max(300), items: z.array(z.object({ name: z.string().trim().min(1).max(80), url: z.preprocess(emptyToNull, safeUrl.nullable()).default(null) })).max(30) }),
@@ -100,7 +107,7 @@ export const pageContent: Record<PageKey, z.ZodType<Record<string, unknown>>> = 
 export const seoSchema = z.object({
   title: optionalText(70),
   description: optionalText(200),
-  imageUrl: z.preprocess(emptyToNull, z.string().trim().max(500).refine((v) => /^\/(?!\/)[^\s]*$/.test(v) || safeUrl.safeParse(v).success, 'Pick an uploaded image or enter a full https:// address').nullable()),
+  imageUrl: z.preprocess(emptyToNull, imageAddress.nullable()),
   canonicalUrl: z.preprocess(emptyToNull, safeUrl.nullable()),
   noIndex: z.boolean(),
 });
