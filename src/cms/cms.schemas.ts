@@ -83,7 +83,7 @@ export type AnnouncementInput = z.infer<typeof announcementSchema>;
 export type AnnouncementPatch = z.infer<typeof announcementPatch>;
 
 // ---------- pages & SEO ----------
-export const PAGE_KEYS = ['home', 'menu', 'story', 'reviews', 'contact', 'affiliations'] as const;
+export const PAGE_KEYS = ['home', 'menu', 'story', 'reviews', 'contact', 'affiliations', 'footer'] as const;
 export type PageKey = (typeof PAGE_KEYS)[number];
 export const pageKey = z.enum(PAGE_KEYS);
 
@@ -101,6 +101,8 @@ export const pageContent: Record<PageKey, z.ZodType<Record<string, unknown>>> = 
   }),
   reviews: z.object({ intro: z.string().trim().max(300), links: z.array(z.object({ platform: z.string().trim().min(1).max(40), url: safeUrl })).max(10) }),
   contact: z.object({ intro: z.string().trim().max(300) }),
+  // Shown in the footer of every page. The address, phone and social links come from the site settings.
+  footer: z.object({ tagline: z.string().trim().max(200), bottomNote: z.string().trim().max(200) }),
   affiliations: z.object({ intro: z.string().trim().max(300), items: z.array(z.object({ name: z.string().trim().min(1).max(80), url: z.preprocess(emptyToNull, safeUrl.nullable()).default(null) })).max(30) }),
 };
 

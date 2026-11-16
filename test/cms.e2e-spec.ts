@@ -224,6 +224,20 @@ describe('CMS: menu, announcements, pages/SEO, settings (e2e, requires seeded db
       await bad({ noIndex: false }).expect(200);
     });
 
+    it('lets the footer text be edited, validates it, and the public endpoint reflects it', async () => {
+      const seo = { title: null, description: null, imageUrl: null, canonicalUrl: null, noIndex: false };
+      const footer = (content: object) => ctx.owner.put('/admin/pages/footer').send({ content, seo });
+      try {
+        await footer({ tagline: 'x'.repeat(201), bottomNote: '' }).expect(400);
+        await footer({ tagline: 'Pure vegetarian, made fresh daily.', bottomNote: 'Please tell us about allergies.' }).expect(200);
+        expect((await ctx.api().get('/api/v1/pages/footer').expect(200)).body.content).toEqual({ tagline: 'Pure vegetarian, made fresh daily.', bottomNote: 'Please tell us about allergies.' });
+        const staffTry = await ctx.staff.put('/admin/pages/footer').send({ content: { tagline: 'hacked', bottomNote: '' }, seo });
+        expect(staffTry.status).toBe(403); // owner only, like every other page
+      } finally {
+        await ctx.prisma.page.deleteMany({ where: { key: 'footer' } });
+      }
+    });
+
     it('lets the Our Story picture be chosen, validates its address, and falls back when removed', async () => {
       const seo = { title: null, description: null, imageUrl: null, canonicalUrl: null, noIndex: false };
       const story = (extra: object) => ctx.owner.put('/admin/pages/story').send({ content: { headline: 'Our roots', paragraphs: ['One.'], ...extra }, seo });
